@@ -70,12 +70,32 @@ EventSchema.pre("save", async function () {
 
   // --- Date normalisation (ISO 8601 YYYY-MM-DD) ---
   if (this.isModified("date")) {
-    const parsed = new Date(this.date);
-    if (isNaN(parsed.getTime())) {
-      throw new Error(`Invalid date value: "${this.date}"`);
+    const dateStr = this.date.trim();
+
+    // Require a strict calendar date in the form YYYY-MM-DD
+    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+      throw new Error(
+        `Invalid date format: "${this.date}". Expected YYYY-MM-DD.`
+      );
     }
-    // Store as YYYY-MM-DD
-    this.date = parsed.toISOString().split("T")[0];
+
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const day = parseInt(match[3], 10);
+
+    // Use UTC-based Date to validate the calendar date without timezone shifting
+    const utcDate = new Date(Date.UTC(year, month - 1, day));
+    if (
+      utcDate.getUTCFullYear() !== year ||
+      utcDate.getUTCMonth() + 1 !== month ||
+      utcDate.getUTCDate() !== day
+    ) {
+      throw new Error(`Invalid calendar date: "${this.date}".`);
+    }
+
+    // Store the validated YYYY-MM-DD string as-is
+    this.date = dateStr;
   }
 
   // --- Time normalisation (HH:mm 24-hour format) ---
