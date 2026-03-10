@@ -64,8 +64,9 @@ EventSchema.pre("save", async function () {
       .replace(/^-|-$/g, "");      // trim leading/trailing hyphens
 
     // Append a short random suffix to avoid collisions on duplicate titles
-    const suffix = Math.random().toString(36).substring(2, 8);
-    this.slug = `${base}-${suffix}`;
+    // const suffix = Math.random().toString(36).substring(2, 8);
+    // this.slug = `${base}-${suffix}`;
+    this.slug = `${base}`;
   }
 
   // --- Date normalisation (ISO 8601 YYYY-MM-DD) ---
