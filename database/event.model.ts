@@ -111,14 +111,26 @@ EventSchema.pre("save", async function () {
     const minutes = parseInt(match[2], 10);
     const meridiem = match[3]?.toLowerCase();
 
-    // Convert 12-hour to 24-hour when am/pm is present
-    if (meridiem === "pm" && hours < 12) hours += 12;
-    if (meridiem === "am" && hours === 12) hours = 0;
-
-    if (hours > 23 || minutes > 59) {
+    // Validate minutes (always 0–59)
+    if (minutes > 59) {
       throw new Error(`Time out of range: "${this.time}".`);
     }
 
+    if (meridiem) {
+      // When meridiem is present, treat input as 12-hour time: hours must be 1–12
+      if (hours < 1 || hours > 12) {
+        throw new Error(`Time out of range: "${this.time}".`);
+      }
+
+      // Convert 12-hour to 24-hour when am/pm is present
+      if (meridiem === "pm" && hours < 12) hours += 12;
+      if (meridiem === "am" && hours === 12) hours = 0;
+    } else {
+      // Without meridiem, treat input as 24-hour time: hours must be 0–23
+      if (hours > 23) {
+        throw new Error(`Time out of range: "${this.time}".`);
+      }
+    }
     this.time = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
   }
 });
