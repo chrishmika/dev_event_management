@@ -1,14 +1,5 @@
+import "server-only";
 import mongoose, { Connection } from "mongoose";
-
-/**
- * The MongoDB connection URI from environment variables.
- * Throws immediately at module load if not configured.
- */
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error("MONGODB_URI is not defined in the environment variables.");
-}
 
 /**
  * Shape of the cached connection stored on the Node.js global object.
@@ -25,7 +16,6 @@ interface MongooseCache {
  * Using `var` inside `declare global` is required by TypeScript.
  */
 declare global {
-  // eslint-disable-next-line no-var
   var mongooseCache: MongooseCache | undefined;
 }
 
@@ -45,6 +35,11 @@ globalThis.mongooseCache = cached;
  * Safe to call repeatedly — only the first invocation opens a connection.
  */
 async function connectToDatabase(): Promise<Connection> {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error("MONGODB_URI is not defined in the environment variables.");
+  }
+
   // Return the existing connection if already established
   if (cached.conn) {
     return cached.conn;
@@ -53,7 +48,7 @@ async function connectToDatabase(): Promise<Connection> {
   // Start a new connection if one isn't in progress
   if (!cached.promise) {
     cached.promise = mongoose
-      .connect(MONGODB_URI as string, {
+      .connect(uri, {
         bufferCommands: false, // Fail fast instead of buffering when disconnected
       })
       .then((m) => m.connection);
