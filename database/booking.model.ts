@@ -42,7 +42,10 @@ BookingSchema.index({ eventId: 1 });
 BookingSchema.pre("save", async function () {
   // Only check when eventId is set or changed
   if (this.isModified("eventId")) {
-    const EventModel = mongoose.model("Event");
+    const EventModel = mongoose.models.Event;
+    if (!EventModel) {
+      throw new Error('Event model is not registered with Mongoose.');
+    }
     const exists = await EventModel.exists({ _id: this.eventId });
     if (!exists) {
       throw new Error(`Event with id "${this.eventId}" does not exist.`);
