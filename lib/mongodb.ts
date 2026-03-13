@@ -55,6 +55,8 @@ async function connectToDatabase(): Promise<Connection> {
     cached.promise = mongoose
       .connect(MONGODB_URI as string, {
         bufferCommands: false, // Fail fast instead of buffering when disconnected
+        serverSelectionTimeoutMS: 10000,
+
       })
       .then((m) => m.connection);
   }
