@@ -1,7 +1,6 @@
 import BookEvent from "@/components/BookEvent";
 import EventCard from "@/components/EventCard";
-import { IEvent } from "@/database";
-import { getSimilierEventsBySlug } from "@/lib/actions/events.actions";
+import { getSimilarEventsBySlug } from "@/lib/actions/events.actions";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
@@ -9,13 +8,28 @@ type RouteParams = {
   params: Promise<{ slug: string }>
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || null
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+
+const parseStringArraySafe = (value: unknown): string[] => {
+  if (typeof value !== "string") {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
+};
 
 
 const EventDetailItem = ({ icon, alt, label }: { icon: string; alt: string; label: string }) => {
 
   return (
-    <div className="flex-row-gap-2 items-center">
+    <div className="flex items-center gap-2">
 
       <Image src={icon} alt={alt} width={17} height={17} />
       <p>{label}</p>
@@ -57,14 +71,25 @@ const EventTags = ({ tags }: { tags: string[] }) => {
 const EventDetailsPage = async ({ params }: RouteParams) => {
   const { slug } = await params;
   const response = await fetch(`${BASE_URL}/api/events/${slug}`)
-  const { event } = await response.json();
+  if (!response.ok) {
+    return notFound();
+  }
+
+  const data = await response.json().catch(() => null);
+  const event = data?.event;
 
 
   if (!event) return notFound();
 
   const bookings = 10
 
-  const similarEvents: IEvent[] = await getSimilierEventsBySlug(event.slug)
+  const similarEvents = await getSimilarEventsBySlug(event.slug)
+  const agendaItems = Array.isArray(event.agenda) && event.agenda.length > 0
+    ? parseStringArraySafe(event.agenda[0])
+    : [];
+  const tagItems = Array.isArray(event.tags) && event.tags.length > 0
+    ? parseStringArraySafe(event.tags[0])
+    : [];
 
 
   return (
@@ -101,7 +126,7 @@ const EventDetailsPage = async ({ params }: RouteParams) => {
             <EventDetailItem icon="/icons/audience.svg" alt="audience" label={event.audience} />
           </section>
 
-          <EventAgenda agenda={JSON.parse(event.agenda[0])} />
+          <EventAgenda agenda={agendaItems} />
 
 
           <section className="flex-col-gap-3">
@@ -111,7 +136,7 @@ const EventDetailsPage = async ({ params }: RouteParams) => {
 
           </section>
 
-          <EventTags tags={JSON.parse(event.tags[0])} />
+          <EventTags tags={tagItems} />
         </div>
 
 
@@ -141,7 +166,7 @@ const EventDetailsPage = async ({ params }: RouteParams) => {
         <h2>Similar Events</h2>
 
         <div className="events">
-          {similarEvents.length > 0 && similarEvents.map((e: IEvent) => (
+          {similarEvents.length > 0 && similarEvents.map((e) => (
             <EventCard
               key={String(e._id)}
               slug={String(e.slug)}

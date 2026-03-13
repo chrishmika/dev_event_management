@@ -2,6 +2,7 @@ import connectToDatabase from "@/lib/mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import  Event  from "@/database/event.model";
 import {v2 as cloudinary} from 'cloudinary';
+import type { UploadApiResponse } from "cloudinary";
 
 
 export async function POST(req: NextRequest){
@@ -28,16 +29,19 @@ export async function POST(req: NextRequest){
             return NextResponse.json({message:'Image file is required'},{status:400})
         }
 
-        let tags = JSON.parse(formData.get('tags') as string)
-        let agenda = JSON.parse(formData.get('agenda') as string)
+
+        const tags = JSON.parse(formData.get('tags') as string)
+        const agenda = JSON.parse(formData.get('agenda') as string)
 
         const arrayBuffer = await file.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer);
 
-        const uploadRestult = await new Promise((resolve,reject)=> {
-            cloudinary.uploader.upload_stream({resource_type:'image', folder:'events'}, (error:Error| null, result:string) => {
+        const uploadRestult = await new Promise<UploadApiResponse>((resolve,reject)=> {
+            cloudinary.uploader.upload_stream({resource_type:'image', folder:'events'}, (error, result: UploadApiResponse | undefined) => {
                 if (error) {
                     reject(error);
+                } else if (!result) {
+                    reject(new Error("Cloudinary upload returned no result"));
                 } else {
                     resolve(result);
                 }

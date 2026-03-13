@@ -43,9 +43,6 @@ const EventSchema = new Schema<IEvent>(
   { timestamps: true }
 );
 
-// Unique index for fast slug lookups
-EventSchema.index({ slug: 1 }, { unique: true });
-
 /**
  * Pre-save hook:
  * 1. Generates a URL-friendly slug from title (only when title changes).
@@ -63,10 +60,22 @@ EventSchema.pre("save", async function () {
       .replace(/-+/g, "-")         // collapse consecutive hyphens
       .replace(/^-|-$/g, "");      // trim leading/trailing hyphens
 
-    // Append a short random suffix to avoid collisions on duplicate titles
-    // const suffix = Math.random().toString(36).substring(2, 8);
-    // this.slug = `${base}-${suffix}`;
-    this.slug = `${base}`;
+    const safeBase = base || "event";
+    const EventModel = this.constructor as Model<IEvent>;
+    let candidate = safeBase;
+    let suffix = 2;
+
+    while (
+      await EventModel.exists({
+        slug: candidate,
+        _id: { $ne: this._id },
+      })
+    ) {
+      candidate = `${safeBase}-${suffix}`;
+      suffix += 1;
+    }
+
+    this.slug = candidate;
   }
 
   // --- Date normalisation (ISO 8601 YYYY-MM-DD) ---
