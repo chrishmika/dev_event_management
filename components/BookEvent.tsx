@@ -1,22 +1,28 @@
 'use client';
 
 
+import { createBooking } from "@/lib/actions/booking.action";
 import { useState } from "react";
+import posthog from "posthog-js";
 
-
-const BookEvent = () => {
+const BookEvent = ({ eventId, slug }: { eventId: string; slug: string }) => {
 
     const [email, setEmail] = useState("")
     const [submitted, setIsSubmitted] = useState(false)
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitted(true)
+    const handleSubmit = async (e: React.FormEvent) => {
 
+        e.preventDefault()
+        const { success, } = await createBooking({ eventId, slug, email })
 
-        setTimeout(() => {
-            setIsSubmitted(false)
-        }, 1000)
+        if (success) {
+            setIsSubmitted(true)
+            posthog.capture("event_booked", { eventId, slug, email })
+        } else {
+            console.log('booking creation fails')
+            posthog.captureException('Booking creation fails')
+        }
+
 
     }
 

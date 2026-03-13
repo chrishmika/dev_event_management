@@ -3,7 +3,8 @@
 import { Event } from "@/database";
 import connectToDatabase from "../mongodb";
 
-export const getSimilarEventsBySlug = async (slug: string) => {    try{
+export const getSimilarEventsBySlug = async (slug: string) => {    
+    try{
         await connectToDatabase();
 
 
